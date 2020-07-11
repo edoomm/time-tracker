@@ -1,9 +1,14 @@
+// Sheets names
+var SHEET_DATA = '_Data';
+var SHEET_TASKS = 'Tasks';
+var SHEET_CALENDAR = 'Calendar';
 // _Data variables
 var DATA_MEMBER_COL = 1;
 var DATA_EMAIL_COL = 2;
 var DATA_CAL_ID = [2,6];
 // Tasks variables
 var TASKS_MEMBER_INCREMENT = 5;
+var TASKS_TITLES_COL = 1;
 var TASKS_VALUES_COL = 2;
 var TASKS_TASK_ROW = 1;
 var TASKS_ROUTINE_ROW = 2;
@@ -12,9 +17,14 @@ var TASKS_DATE_ROW = 4;
 var TASKS_START_ROW = 5;
 var TASKS_END_ROW = 6;
 var TASKS_COLLABORATORS_ROW = 7
-var TASKS_EMAILS_COLL_COL = 4;
+var TASKS_EMAILS_COLL_COL = 5;
 var TASKS_DESCRIPTION_ROW = 8;
 var TASKS_LOCATION_ROW = 9;
+var TASKS_SWITCH = [1,3];
+var TASKS_DAYS = [4,3];
+var TASKS_DURATION = [5,4];
+var TASKS_ADD_TASK_BUTTON = [11,1];
+var TASKS_ADD_ROUTINE_BUTTON = [12,1];
 
 var DATE_CAPTION = 'Double click to pop calendar up';
 
@@ -23,7 +33,7 @@ var DATE_CAPTION = 'Double click to pop calendar up';
 */
 
 function searchRowMember(member) {
-  var data = SpreadsheetApp.getActive().getSheetByName('_Data').getDataRange().getValues();
+  var data = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA).getDataRange().getValues();
 
   for (var i = 0; i < data.length; i++)
     if (data[i][0] == member)
@@ -34,8 +44,8 @@ function searchRowMember(member) {
 
 function addToCalendar(event, date, start, end, member, collaborators, description, location) {
   var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssCalendar = SpreadsheetApp.getActive().getSheetByName('Calendar');
-  var ssData = SpreadsheetApp.getActive().getSheetByName('_Data');
+  var ssCalendar = SpreadsheetApp.getActive().getSheetByName(SHEET_CALENDAR);
+  var ssData = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
 
   // Task
   if (date != null) {
@@ -94,8 +104,8 @@ function getLastRowRange(range) {
 function addNewMember() {
   var ui = SpreadsheetApp.getUi(); // gets user interface
   var ss = SpreadsheetApp.getActive(); // assign active spreadsheet to variable
-  var ssData = ss.getSheetByName('_Data');
-  var ssTasks = ss.getSheetByName('Tasks');
+  var ssData = ss.getSheetByName(SHEET_DATA);
+  var ssTasks = ss.getSheetByName(SHEET_TASKS);
   var memberRange = ssData.getRange("A:A");
 
   // retrieving data from prompts
@@ -146,11 +156,47 @@ function addNewMember() {
   ssData.getRange(rowIndex,DATA_EMAIL_COL).setValue(email);
 }
 
+function switchTaskRoutine() {
+  var ui = SpreadsheetApp.getUi(); // gets user interface
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
+
+  var switchCaption = ssTasks.getRange(TASKS_SWITCH[0], TASKS_SWITCH[1])
+  var disable = SpreadsheetApp.newDataValidation().requireTextEqualTo('null').setAllowInvalid(false).setHelpText("Do not edit in print sheet").build();
+  // switch to routine
+  if (switchCaption.getValue().includes('routine')) {
+    // tasks controls
+    ssTasks.getRange(TASKS_TASK_ROW, TASKS_TITLES_COL, 1, 2).setBackground('#dedede').setDataValidation(disable);
+    ssTasks.getRange(TASKS_DATE_ROW, TASKS_TITLES_COL, 1, 2).setBackground('#dedede');
+    ssTasks.getRange(TASKS_ADD_TASK_BUTTON[0], TASKS_ADD_TASK_BUTTON[1]).setBackground('#dedede');
+    // routine controls
+    ssTasks.getRange(TASKS_ROUTINE_ROW, TASKS_TITLES_COL, 1, 2).setBackground('white').setDataValidation(null);
+    ssTasks.getRange(TASKS_DAYS[0], TASKS_DAYS[1], 1, 4).setBackground('white');
+    ssTasks.getRange(TASKS_DURATION[0], TASKS_DURATION[1]-1, 1, 3).setBackground('white');
+    ssTasks.getRange(TASKS_ADD_ROUTINE_BUTTON[0], TASKS_ADD_ROUTINE_BUTTON[1]).setBackground('white');
+
+    switchCaption.setValue('Switch to task');
+  }
+  // switch to tasks
+  else {
+    // tasks controls
+    ssTasks.getRange(TASKS_TASK_ROW, TASKS_TITLES_COL, 1, 2).setBackground('white').setDataValidation(null);
+    ssTasks.getRange(TASKS_DATE_ROW, TASKS_TITLES_COL, 1, 2).setBackground('white');
+    ssTasks.getRange(TASKS_ADD_TASK_BUTTON[0], TASKS_ADD_TASK_BUTTON[1]).setBackground('white');
+    // routine controls
+    ssTasks.getRange(TASKS_ROUTINE_ROW, TASKS_TITLES_COL, 1, 2).setBackground('#dedede').setDataValidation(disable);
+    ssTasks.getRange(TASKS_DAYS[0], TASKS_DAYS[1], 1, 4).setBackground('#dedede');
+    ssTasks.getRange(TASKS_DURATION[0], TASKS_DURATION[1]-1, 1, 3).setBackground('#dedede');
+    ssTasks.getRange(TASKS_ADD_ROUTINE_BUTTON[0], TASKS_ADD_ROUTINE_BUTTON[1]).setBackground('#dedede');
+
+    switchCaption.setValue('Switch to routine');
+  }
+}
+
 function deleteMember() {
   var ui = SpreadsheetApp.getUi(); // gets user interface
   var ss = SpreadsheetApp.getActive(); // assign active spreadsheet to variable
-  var ssData = ss.getSheetByName('_Data');
-  var ssTasks = ss.getSheetByName('Tasks');
+  var ssData = ss.getSheetByName(SHEET_DATA);
+  var ssTasks = ss.getSheetByName(SHEET_TASKS);
   var member = ssTasks.getRange(TASKS_MEMBER_ROW,TASKS_VALUES_COL).getValue();
 
   // Validating data
@@ -179,7 +225,7 @@ function addTask() {
   var ui = SpreadsheetApp.getUi(); // gets user interface
   // MODIFIED
   // var ss = ; // assign active spreadsheet to variable
-  var ssTasks = SpreadsheetApp.getActive().getSheetByName('Tasks');
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
 
   var task = ssTasks.getRange(TASKS_TASK_ROW,TASKS_VALUES_COL).getValue();
   var member = ssTasks.getRange(TASKS_MEMBER_ROW,TASKS_VALUES_COL).getValue();
@@ -199,7 +245,7 @@ function addTask() {
     ui.alert('Missing member');
     isValid = false;
   }
-  if (date == '' || date == 'Double click to pop calendar up') {
+  if (date == '' || date == DATE_CAPTION) {
     ui.alert('Missing date');
     isValid = false;
   }

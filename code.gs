@@ -1,18 +1,18 @@
-// Sheets names
+// sheets names
 var SHEET_DATA = '_Data';
 var SHEET_TASKS = 'Tasks';
 var SHEET_CALENDAR = 'Calendar';
-// _Data variables
+// SHEET_DATA variables
 var DATA_MEMBER_COL = 1;
 var DATA_EMAIL_COL = 2;
-var DATA_CAL_ID = 'F2';
-// Tasks variables
+var DATA_CAL_ID = 'F3';
+// SHEET_TASKS variables
 var TASKS_MEMBER_INCREMENT = 5;
 var TASKS_TITLES_COL = 1;
 var TASKS_VALUES_COL = 2;
 var TASKS_TASK = 'B1';
 var TASKS_TASK_ROW = 1;
-var TASK_ROUTINE = 'B2';
+var TASKS_ROUTINE = 'B2';
 var TASKS_ROUTINE_ROW = 2;
 var TASKS_MEMBER = 'B3';
 var TASKS_DATE = 'B4';
@@ -25,11 +25,17 @@ var TASKS_DESCRIPTION = 'B8';
 var TASKS_LOCATION = 'B9';
 var TASKS_SWITCH = 'C1';
 var TASKS_DAYS = [4,3];
+var TASKS_DAYS_DROPDOWN = 'D4';
+var TASKS_DAYS_CHOSEN = 'F4';
 var TASKS_DURATION = [5,4];
 var TASKS_ADD_TASK_BUTTON = 'A11';
 var TASKS_ADD_ROUTINE_BUTTON = 'A12';
-
 var DATE_CAPTION = 'Double click to pop calendar up';
+var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// calendar options
+var SEND_INVITES = true;
+// coder info
+var EMAIL = 'eduardo.mendozamartinez@aiesec.net';
 
 /*
   Common functions
@@ -50,70 +56,83 @@ function addToCalendar(event, date, start, end, member, collaborators, descripti
   var ssCalendar = SpreadsheetApp.getActive().getSheetByName(SHEET_CALENDAR);
   var ssData = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
 
-  // Task
-  if (date != null) {
-    // Converting parameters into Date objects
-    var d = new Date(date);
-    var s = new Date(start);
-    var e = new Date(end);
-
-    // Creating actual start and end dates
-    var startDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), s.getHours(), s.getMinutes(), s.getSeconds(), s.getMilliseconds());
-    var endDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), e.getHours(), e.getMinutes(), e.getSeconds(), e.getMilliseconds());
-
-    // Getting cell coordinates
-    var day = (startDate.getDay() != 0) ? startDate.getDay()+1 : 8;
-    var hour = startDate.getHours()+2;
-
-    // One hour events
-    if (endDate.getHours() - startDate.getHours() == 1)
-      ssCalendar.getRange(hour, day).setValue(event);
-    // More than one hour events
-    else {
-      var eventRange = ssCalendar.getRange(hour, day, endDate.getHours()-startDate.getHours());
-      eventRange.mergeVertically();
-      eventRange.setValue(event);
-      eventRange.setHorizontalAlignment("center");
-      eventRange.setVerticalAlignment("middle");
-    }
-
-    // creating Google Calendar event
-    var rowMember = searchRowMember(member);
-    var email = ssData.getRange(rowMember, DATA_EMAIL_COL).getValue();
-
-    // checking again collaborators
-    if (collaborators.includes(email)) {
-      ui.alert('🙃', 'did ya really insisted on havin the same member as his own collaborator???\nit\'s okay, nevermind I gotcha', ui.ButtonSet.OK);
-      email = collaborators;
-      collaborators = '';
-    }
-
-    var calendarId = ssData.getRange(DATA_CAL_ID).getValue();
-    var options = {
-      'location': location,
-      'description': (description == '') ? 'No description' : description,
-      'guests': (collaborators == '') ? email : email + ',' + collaborators
-    };
-
-    if (calendarId != '') {
-      var loc = location;
-      var desc = (description == '') ? 'No description' : description;
-      var guests = (collaborators == '') ? email : email + ',' + collaborators;
-
-      var eventCal = CalendarApp.getCalendarById(calendarId);
-      eventCal.createEvent(event, startDate, endDate, options);
-    }
-    else
-      ui.alert("🤔", "There is no calendar ID in " + SHEET_DATA + "!" + DATA_CAL_ID + "\nMake sure to set this up in order to arrange the tasks you give in Google Calendar(:", ui.ButtonSet.OK);
+  var calendarId = ssData.getRange(DATA_CAL_ID).getValue();
+  if (calendarId == '') {
+    ui.alert("🤔", "There is no calendar ID in " + SHEET_DATA + "!" + DATA_CAL_ID + "\nMake sure to set this up in order to arrange the tasks you give in Google Calendar(:", ui.ButtonSet.OK);
+    return;
   }
-  // Routine
+
+  // Converting parameters into Date objects
+  var d = new Date(date);
+  var s = new Date(start);
+  var e = new Date(end);
+
+  // Creating actual start and end dates
+  var startDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), s.getHours(), s.getMinutes(), s.getSeconds(), s.getMilliseconds());
+  var endDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), e.getHours(), e.getMinutes(), e.getSeconds(), e.getMilliseconds());
+
+  // Getting cell coordinates
+  var day = (startDate.getDay() != 0) ? startDate.getDay()+1 : 8;
+  var hour = startDate.getHours()+2;
+
+  // One hour events
+  if (endDate.getHours() - startDate.getHours() == 1)
+    ssCalendar.getRange(hour, day).setValue(event);
+  // More than one hour events
   else {
-
+    var eventRange = ssCalendar.getRange(hour, day, endDate.getHours()-startDate.getHours());
+    eventRange.mergeVertically();
+    eventRange.setValue(event);
+    eventRange.setHorizontalAlignment("center");
+    eventRange.setVerticalAlignment("middle");
   }
+
+  // creating Google Calendar event
+  var rowMember = searchRowMember(member);
+  var email = ssData.getRange(rowMember, DATA_EMAIL_COL).getValue();
+
+  // checking again collaborators
+  if (collaborators.includes(email)) {
+    ui.alert('🙃', 'did ya really insisted on havin the same member as his own collaborator???\nit\'s okay, nevermind I gotcha', ui.ButtonSet.OK);
+    email = collaborators;
+    collaborators = '';
+  }
+
+  var options = {
+    'location': location,
+    // 'description': (description == '') ? 'No description' : description,
+    'description': description,
+    'guests': (collaborators == '') ? email : email + ',' + collaborators,
+    'sendInvites': (SEND_INVITES) ? 'True' : 'False'
+  };
+
+  var eventCal = CalendarApp.getCalendarById(calendarId);
+  eventCal.createEvent(event, startDate, endDate, options);
 }
 
 function getLastRowRange(range) {
   return range.getValues().filter(String).length;
+}
+
+function getNumElements(collection, separator) {
+  if (collection == '')
+    return 0;
+
+  var num = 1;
+
+  for (var i = 0; i < collection.length; i++)
+    if (collection[i] == separator)
+      num++;
+
+  return num;
+}
+
+function getIndexOf(element, collection) {
+  for (var i = 0; i < collection.length; i++)
+    if (collection[i] == element)
+      return i;
+
+  return -1;
 }
 
 /*
@@ -205,11 +224,72 @@ function deleteMember() {
 }
 
 function addDay() {
+  var ui = SpreadsheetApp.getUi(); // gets user interface
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
 
+  var dayOption = ssTasks.getRange(TASKS_DAYS_DROPDOWN).getValue();
+  var daysChosenRange = ssTasks.getRange(TASKS_DAYS_CHOSEN);
+  var daysChosen = daysChosenRange.getValue();
+
+  // validating
+  if (dayOption == '') {
+    ui.alert(':(', 'You haven\'t choose a day from the dropdown list', ui.ButtonSet.OK);
+    return;
+  }
+  if (daysChosen.includes(dayOption))
+    return;
+
+  // entering data
+  var today = new Date();
+
+  if (dayOption == 'Everyday' || dayOption == 'Once every two days') {
+    if (dayOption == 'Everyday')
+      daysChosenRange.setValue(DAYS.join());
+    else if (dayOption == 'Once every two days') {
+
+      var days = '';
+      for (var i = 0; i < 3; i++) {
+        var index = (2*i + today.getDay()) % 6;
+        days += (days == '') ? DAYS[index] : ',' + DAYS[index];
+      }
+
+      daysChosenRange.setValue(days);
+    }
+    else
+      ui.alert('Wat?', 'This doesn\'t even make sense in the code, how did you do it tho?\nPlease tell me how you did it, I\'m impressed lol\n' + EMAIL, ui.ButtonSet.OK);
+  }
+  else {
+    var days = (daysChosen == '') ? dayOption : daysChosen + "," + dayOption;
+    ssTasks.getRange(TASKS_DAYS_CHOSEN).setValue(days);
+  }
 }
 
-function addRoutine() {
+function removeDay() {
+  var ui = SpreadsheetApp.getUi(); // gets user interface
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
 
+  var dayOption = ssTasks.getRange(TASKS_DAYS_DROPDOWN).getValue();
+  var daysChosenRange = ssTasks.getRange(TASKS_DAYS_CHOSEN);
+
+  // validating
+  if (dayOption == '') {
+    ui.alert(':(', 'You haven\'t choose a day from the dropdown list', ui.ButtonSet.OK);
+    return;
+  }
+  if (!daysChosenRange.getValue().includes(dayOption))
+    return;
+
+
+  daysChosenRange.setValue(daysChosenRange.getValue().replace(dayOption, '').replace(',,', ','));
+  var daysChosen = daysChosenRange.getValue();
+  if (daysChosen[0] == ',')
+    daysChosenRange.setValue(daysChosen.substring(1, daysChosen.length));
+  if (daysChosen[daysChosen.length-1] == ',')
+    daysChosenRange.setValue(daysChosen.substring(0, daysChosen.length-1));
+}
+
+function clearDays() {
+  SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS).getRange(TASKS_DAYS_CHOSEN).setValue('');
 }
 
 function addCollaborator() {
@@ -251,7 +331,7 @@ function addCollaborator() {
   }
 }
 
-function deleteCollaborator() {
+function removeCollaborator() {
   var ui = SpreadsheetApp.getUi(); // gets user interface
   var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
   var ssData = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
@@ -280,13 +360,116 @@ function deleteCollaborator() {
     emailColRange.setValue(emails.substring(0, emails.length-1));
 }
 
+function clearEmailsColl() {
+  SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS).getRange(TASKS_EMAILS_COLLABORATORS).setValue('');
+}
+
+function addRoutine() {
+  var ui = SpreadsheetApp.getUi(); // gets user interface
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
+
+  // verifies if it is in routine mode
+  if (ssTasks.getRange(TASKS_SWITCH).getValue().includes('routine')) {
+    ui.alert('Ups! Wrong button', 'You are in task mode, you need to click ' + TASKS_SWITCH + ' button to change to routine mode if you want to create a routine', ui.ButtonSet.OK);
+    return;
+  }
+
+  var routine = ssTasks.getRange(TASKS_ROUTINE).getValue();
+  var member = ssTasks.getRange(TASKS_MEMBER).getValue();
+  var days = ssTasks.getRange(TASKS_DAYS_CHOSEN).getValue();
+  var duration = ssTasks.getRange(TASKS_DURATION[0], TASKS_DURATION[1]).getValue();
+  var start = ssTasks.getRange(TASKS_START).getValue();
+  var end = ssTasks.getRange(TASKS_END).getValue();
+  var collaborators = ssTasks.getRange(TASKS_EMAILS_COLLABORATORS).getValue();
+  var description = ssTasks.getRange(TASKS_DESCRIPTION).getValue();
+  var location = ssTasks.getRange(TASKS_LOCATION).getValue();
+
+  var isValid = true;
+  if (routine == '') {
+    ui.alert('Missing routine [' + TASKS_ROUTINE + ']');
+    isValid = false;
+  }
+  if (member == '') {
+    ui.alert('Missing member [' + TASKS_MEMBER + ']');
+    isValid = false;
+  }
+  if (days == '') {
+    ui.alert('Missing days [' + TASKS_DAYS_CHOSEN + ']');
+    isValid = false;
+  }
+  if (duration == '') {
+    ui.alert('Missing duration [' + TASKS_DURATION + ']');
+    isValid = false;
+  }
+  if (start == '') {
+    ui.alert('Missing start time [' + TASKS_START + ']');
+    isValid = false;
+  }
+  if (end == '') {
+    ui.alert('Missing end time [' + TASKS_END + ']');
+    isValid = false;
+  }
+  if (new Date(start).getHours() > new Date(end).getHours()) {
+    ui.alert('Start hour greater than end hour');
+    isValid = false;
+  }
+
+  if (!isValid)
+    return;
+
+  // all data is valid, proceed to manage it
+  var rowMember = searchRowMember(member)-1;
+  if (rowMember == -1) {
+    ui.prompt('😢 No member found', 'Make sure the member is in the sheet "' + SHEET_DATA + '"\n(Or that you have properly chosen within the dropdown list of ' + TASKS_MEMBER + ')', ui.ButtonSet.OK);
+    return;
+  }
+
+  // creating routine
+  var today = new Date();
+  var numDay = today.getDay() - 1;
+  var arrDays = days.split(',');
+  var arrNumDays = [];
+
+  // getting difference from today's date
+  for (var i = 0; i < arrDays.length; i++) {
+    var dif = getIndexOf(arrDays[i], DAYS) - numDay;
+    arrNumDays.push( (dif <= 0) ?  7+dif : dif );
+  }
+  arrNumDays.sort();
+
+  // getting next days from today on
+  var nextDates = [];
+  for (var i = 0; i < duration; i++) {
+    for (var j = 0; j < arrNumDays.length; j++) {
+      var nextDate = new Date(today);
+      nextDate.setDate(today.getDate() + arrNumDays[j] + 7*i)
+      nextDates.push(nextDate);
+    }
+  }
+
+  // creating calendar events
+  for (var i = 0; i < nextDates.length; i++) {
+    addToCalendar(routine, nextDates[i], start, end, member, collaborators, description, location);
+  }
+
+  // resetting controls
+  ssTasks.getRange(TASKS_ROUTINE).setValue('');
+  ssTasks.getRange(TASKS_DAYS[0], TASKS_DAYS[1]+1).setValue('');
+  ssTasks.getRange(TASKS_START).setValue('');
+  ssTasks.getRange(TASKS_END).setValue('');
+  ssTasks.getRange(TASKS_DURATION[0], TASKS_DURATION[1]).setValue('');
+  ssTasks.getRange(TASKS_COLLABORATORS).setValue('');
+  ssTasks.getRange(TASKS_DESCRIPTION).setValue('');
+  ssTasks.getRange(TASKS_LOCATION).setValue('');
+}
+
 function addTask() {
   var ui = SpreadsheetApp.getUi(); // gets user interface
   var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
 
   // verifies if it is in task mode
   if (ssTasks.getRange(TASKS_SWITCH).getValue().includes('task')) {
-    ui.alert('Ups! Wrong button', 'You are in routine mode, you need to click C3 button to change to task mode', ui.ButtonSet.OK);
+    ui.alert('Ups! Wrong button', 'You are in routine mode, you need to click ' + TASKS_SWITCH + ' button to change to task mode if you want to create a task', ui.ButtonSet.OK);
     return;
   }
 
@@ -305,7 +488,7 @@ function addTask() {
     isValid = false;
   }
   if (member == '') {
-    ui.alert('Missing member');
+    ui.alert('Missing member [' + TASKS_MEMBER + ']');
     isValid = false;
   }
   if (date == '' || date == DATE_CAPTION) {
@@ -313,11 +496,11 @@ function addTask() {
     isValid = false;
   }
   if (start == '') {
-    ui.alert('Missing start time');
+    ui.alert('Missing start time [' + TASKS_START + ']');
     isValid = false;
   }
   if (end == '') {
-    ui.alert('Missing end time');
+    ui.alert('Missing end time [' + TASKS_END + ']');
     isValid = false;
   }
   if (new Date(start).getHours() > new Date(end).getHours()) {
@@ -328,32 +511,32 @@ function addTask() {
   if (!isValid)
     return;
 
-  // All data is valid, proceed to manage it
+  // all data is valid, proceed to manage it
   var rowMember = searchRowMember(member)-1;
-  if (rowMember != -1) {
-    var row = 10*rowMember+TASKS_MEMBER_INCREMENT;
-    var tasksRange = ssTasks.getRange(row,TASKS_VALUES_COL,9);
-    var noRows = getLastRowRange(tasksRange);
-
-    // setting task
-    ssTasks.getRange(row+noRows,TASKS_VALUES_COL).setValue(task);
-
-    // Google Calendar
-    addToCalendar(task, date, start, end, member, collaborators, description, location);
-
-    // Resetting controls
-    ssTasks.getRange(TASKS_TASK).setValue('');
-    ssTasks.getRange(TASK_ROUTINE).setValue('');
-    ssTasks.getRange(TASKS_DATE).setValue(DATE_CAPTION);
-    ssTasks.getRange(TASKS_START).setValue('');
-    ssTasks.getRange(TASKS_END).setValue('');
-    ssTasks.getRange(TASKS_COLLABORATORS).setValue('');
-    ssTasks.getRange(TASKS_EMAILS_COLLABORATORS).setValue('');
-    ssTasks.getRange(TASKS_DESCRIPTION).setValue('');
-    ssTasks.getRange(TASKS_LOCATION).setValue('');
+  if (rowMember == -1) {
+    ui.prompt('😢 No member found', 'Make sure the member is in the sheet "' + SHEET_DATA + '"\n(Or that you have properly chosen within the dropdown list of ' + TASKS_MEMBER + ')', ui.ButtonSet.OK);
+    return;
   }
-  else
-    ui.prompt('No member found', 'Make sure you choose the member within the options the dropdown list gives you', ui.ButtonSet.OK);
+
+  // creating task
+  var row = 10*rowMember+TASKS_MEMBER_INCREMENT;
+  var tasksRange = ssTasks.getRange(row,TASKS_VALUES_COL,9);
+  var noRows = getLastRowRange(tasksRange);
+
+  // setting task
+  ssTasks.getRange(row+noRows,TASKS_VALUES_COL).setValue(task);
+
+  // Google Calendar
+  addToCalendar(task, date, start, end, member, collaborators, description, location);
+
+  // resetting controls
+  ssTasks.getRange(TASKS_TASK).setValue('');
+  ssTasks.getRange(TASKS_DATE).setValue(DATE_CAPTION);
+  ssTasks.getRange(TASKS_START).setValue('');
+  ssTasks.getRange(TASKS_END).setValue('');
+  ssTasks.getRange(TASKS_COLLABORATORS).setValue('');
+  ssTasks.getRange(TASKS_DESCRIPTION).setValue('');
+  ssTasks.getRange(TASKS_LOCATION).setValue('');
 }
 
 function switchTaskRoutine() {

@@ -5,7 +5,8 @@ var SHEET_CALENDAR = 'Calendar';
 // SHEET_DATA variables
 var DATA_MEMBER_COL = 1;
 var DATA_EMAIL_COL = 2;
-var DATA_CAL_ID = 'F3';
+var DATA_CAL_ID = 'F2';
+var DATA_APPROVE_VAL = 'F4';
 // SHEET_TASKS variables
 var TASKS_MEMBER_INCREMENT = 5;
 var TASKS_TITLES_COL = 1;
@@ -32,6 +33,12 @@ var TASKS_ADD_TASK_BUTTON = 'A11';
 var TASKS_ADD_ROUTINE_BUTTON = 'A12';
 var DATE_CAPTION = 'Double click to pop calendar up';
 var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+var TASKS_VALUE_COLUMN = 'C';
+var TASKS_CHECKBOX_COLUMN = 'D';
+var TASKS_H_M_COLUMN = 'E';
+var TASKS_ACHIEVEMENT_COLUMN = 'F';
+var NUM_TASKS = 8;
+var TASKS_VALUES_TASKS_COL = 3;
 // calendar options
 var SEND_INVITES = true;
 // coder info
@@ -172,8 +179,8 @@ function addNewMember() {
 
   // creating task table
   var row = (10*(getLastRowRange(memberRange)))+TASKS_MEMBER_INCREMENT;
-  var headers = [['Member', 'Task', 'Value']];
-  var headersRange = ssTasks.getRange(row,1,1,3);
+  var headers = [['Member', 'Task', 'Value', 'Fully done?', 'If not, how much?', 'Achievement', 'Total']];
+  var headersRange = ssTasks.getRange(row,1,1,7);
 
   // inserting and formatting header data
   headersRange.setValues(headers);
@@ -181,17 +188,86 @@ function addNewMember() {
   headersRange.setFontWeight("bold");
 
   // inserting and formatting member data
-  var nameRange = ssTasks.getRange(row+1,1,8);
+  var nameRange = ssTasks.getRange(row+1,1,NUM_TASKS);
   nameRange.mergeVertically();
   nameRange.setValue(member);
   nameRange.setHorizontalAlignment("center");
   nameRange.setVerticalAlignment("middle");
   nameRange.setFontWeight("bold");
 
+  // inserting value number format
+  ssTasks.getRange(row+1,3,NUM_TASKS).setNumberFormat('0.00%');
+
+  // inserting checkboxes
+  var checkboxesRange = ssTasks.getRange(row+1,4,NUM_TASKS);
+  var enforceCheckbox = SpreadsheetApp.newDataValidation();
+  enforceCheckbox.requireCheckbox();
+  enforceCheckbox.setAllowInvalid(false);
+  enforceCheckbox.build();
+  checkboxesRange.setDataValidation(enforceCheckbox);
+
+  // inserting 100% how much
+  var hmRange = ssTasks.getRange(row+1,5,NUM_TASKS);
+  hmRange.setValue('0');
+  hmRange.setNumberFormat('0.00%');
+
+  // inserting achievement
+  for (var i = 0; i < NUM_TASKS; i++) {
+    ssTasks.getRange(row+1+i,6).setFormula('=IF(' + TASKS_CHECKBOX_COLUMN + (row+1+i).toString() + '=TRUE, ' + TASKS_VALUE_COLUMN + (row+1+i).toString() + ', ' + TASKS_H_M_COLUMN + (row+1+i).toString() + ')');
+  }
+  var achievementRange = ssTasks.getRange(row+1,6,NUM_TASKS);
+  achievementRange.setNumberFormat('0.00%');
+
+  // inserting total
+  var totalRange = ssTasks.getRange(row+1,7,NUM_TASKS);
+  totalRange.mergeVertically();
+  totalRange.setFormula('=SUM(' + TASKS_ACHIEVEMENT_COLUMN + (row+1).toString() + ':' + TASKS_ACHIEVEMENT_COLUMN + (row+9).toString() + ')');
+  totalRange.setNumberFormat('0.00%');
+  totalRange.setHorizontalAlignment("center");
+  totalRange.setVerticalAlignment("middle");
+  totalRange.setFontWeight("bold");
+
   // inserting member in _Data
   var rowIndex = getLastRowRange(memberRange)+1;
   ssData.getRange(rowIndex,DATA_MEMBER_COL).setValue(member);
   ssData.getRange(rowIndex,DATA_EMAIL_COL).setValue(email);
+
+  // creating ConditionalFormatting
+  var appVal = 0.6;
+  try {
+    approves = ssData.getRange(DATA_APPROVE_VAL).getValue();
+    appVal = (approves < 0) ? approves : approves/100;
+  } catch (e) {
+    ui.alert('Exception thrown when trying to retrieve value to approve from ' + SHEET_DATA + ' in cell ' + DATA_APPROVE_VAL + '\nThe value could be not written as a percentage value must be written. The value to approve will be 60% as default\n\nException: ' + e);
+    appVal = 0.6;
+  }
+  var failedRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberLessThan(0.6)
+    .setBackground('#ea4335')
+    .setRanges([totalRange])
+    .build();
+  var warningRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberBetween(0.6, appVal)
+    .setBackground('#fbbc04')
+    .setRanges([totalRange])
+    .build();
+  var approvedRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberBetween(appVal, 1)
+    .setBackground('#34a853')
+    .setRanges([totalRange])
+    .build();
+  var excellenceRule = SpreadsheetApp.newConditionalFormatRule()
+    .whenNumberGreaterThan(1)
+    .setBackground('#4285f4')
+    .setRanges([totalRange])
+    .build();
+
+  var rules = ssTasks.getConditionalFormatRules();
+  rules.push(failedRule);
+  rules.push(warningRule);
+  rules.push(approvedRule);
+  rules.push(excellenceRule);
+  ssTasks.setConditionalFormatRules(rules);
 }
 
 function deleteMember() {
@@ -212,11 +288,11 @@ function deleteMember() {
   if (rowMember != -1) {
     if (ui.alert('Do you really want to delete "' + member + '"?', '', ui.ButtonSet.YES_NO) == ui.Button.YES) {
       // deletes data in _Data
-      ssData.getRange(rowMember+1,1,1,3).deleteCells(SpreadsheetApp.Dimension.ROWS);
+      ssData.getRange(rowMember+1,1,1,2).deleteCells(SpreadsheetApp.Dimension.ROWS);
 
       // deletes data in Tasks
       ssTasks.getRange(TASKS_MEMBER).setValue('');
-      ssTasks.getRange(10*rowMember+TASKS_MEMBER_INCREMENT,1,10,3).deleteCells(SpreadsheetApp.Dimension.ROWS);
+      ssTasks.getRange(10*rowMember+TASKS_MEMBER_INCREMENT,1,10,7).deleteCells(SpreadsheetApp.Dimension.ROWS);
     }
   }
   else
@@ -523,8 +599,35 @@ function addTask() {
   var tasksRange = ssTasks.getRange(row,TASKS_VALUES_COL,9);
   var noRows = getLastRowRange(tasksRange);
 
+  if (noRows == 9) {
+    ui.prompt('parece ser que el cuerpo aieseco solo resiste 8 tareas');
+    return;
+  }
+
   // setting task
   ssTasks.getRange(row+noRows,TASKS_VALUES_COL).setValue(task);
+  if (noRows == 1) {
+    ssTasks.getRange(row+noRows, TASKS_VALUES_TASKS_COL).setValue(1);
+  }
+  else if (noRows == 2 && ssTasks.getRange(row+noRows-1, TASKS_VALUES_TASKS_COL).getValue() == 1) {
+    ssTasks.getRange(row+noRows-1, TASKS_VALUES_TASKS_COL).setValue(0.5);
+    ssTasks.getRange(row+noRows, TASKS_VALUES_TASKS_COL).setValue(0.5);
+  }
+  else if (noRows == 4 && ssTasks.getRange(row+noRows-1, TASKS_VALUES_TASKS_COL).getValue() == 0 && ssTasks.getRange(row+noRows-2, TASKS_VALUES_TASKS_COL).getValue() == 0.5) {
+    ssTasks.getRange(row+noRows-3, TASKS_VALUES_TASKS_COL).setValue(0.25);
+    ssTasks.getRange(row+noRows-2, TASKS_VALUES_TASKS_COL).setValue(0.25);
+    ssTasks.getRange(row+noRows-1, TASKS_VALUES_TASKS_COL).setValue(0.25);
+    ssTasks.getRange(row+noRows, TASKS_VALUES_TASKS_COL).setValue(0.25);
+  }
+  else if (noRows == 5 && ssTasks.getRange(row+noRows-1, TASKS_VALUES_TASKS_COL).getValue() == 0.25 && ssTasks.getRange(row+noRows-2, TASKS_VALUES_TASKS_COL).getValue() == 0.25) {
+    ssTasks.getRange(row+noRows-4, TASKS_VALUES_TASKS_COL).setValue(0.20);
+    ssTasks.getRange(row+noRows-3, TASKS_VALUES_TASKS_COL).setValue(0.20);
+    ssTasks.getRange(row+noRows-2, TASKS_VALUES_TASKS_COL).setValue(0.20);
+    ssTasks.getRange(row+noRows-1, TASKS_VALUES_TASKS_COL).setValue(0.20);
+    ssTasks.getRange(row+noRows, TASKS_VALUES_TASKS_COL).setValue(0.20);
+  }
+  else
+    ssTasks.getRange(row+noRows, TASKS_VALUES_TASKS_COL).setValue(0);
 
   // Google Calendar
   addToCalendar(task, date, start, end, member, collaborators, description, location);
@@ -544,7 +647,7 @@ function switchTaskRoutine() {
   var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
 
   var switchCaption = ssTasks.getRange(TASKS_SWITCH)
-  var disable = SpreadsheetApp.newDataValidation().requireTextEqualTo('null').setAllowInvalid(false).setHelpText('Do not edit in print sheet').build();
+  var disable = SpreadsheetApp.newDataValidation().requireTextEqualTo('null').setAllowInvalid(false).setHelpText('You cannot edit this cell').build();
   // switch to routine
   if (switchCaption.getValue().includes('routine')) {
     // tasks controls

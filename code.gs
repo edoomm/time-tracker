@@ -55,6 +55,8 @@ const TASKS_TOTAL_COLUMN = 'G';
 const NUM_TASKS = 8;
 const TASKS_VALUES_TASKS_COL = 3;
 const TASKS_NON_FIX_VALUES = 'A13';
+/** @constant {string} - Cell where user chooses an event from SHEET_DATA to delete it */
+const TASKS_EVENT_CHOSEN = 'D11';
 // SHEET_CALENDAR constants
 const CALENDAR_INITIAL_DATE = 'B2';
 const CALENDAR_FINAL_DATE = 'G25';
@@ -168,6 +170,15 @@ function getMembershipNumber() {
 //</editor-fold>
 
 //<editor-fold> Calendars
+
+/**
+ * Adds an event to the internal calendar of the SpreadSheet (SHEET_CALENDAR)
+ *
+ * @param  {string} event     The name of the task or routine
+ * @param  {string} startDate The start date including hours
+ * @param  {string} endDate   The end date including hours
+ * @return {Range}           The range where the event was stored in SHEET_CALENDAR
+ */
 function addToCalendar(event, startDate, endDate) {
   var ssCalendar = SpreadsheetApp.getActive().getSheetByName(SHEET_CALENDAR);
 
@@ -193,6 +204,22 @@ function addToCalendar(event, startDate, endDate) {
   return eventRange;
 }
 
+function removeFromCalendar(range) {
+
+}
+
+/**
+ * Creates an event in Google Calendar
+ *
+ * @param  {string} event         The name of the task or routine
+ * @param  {string} date          The date when it is going to take place the event
+ * @param  {string} start         The start hour of the event
+ * @param  {string} end           The end hour of the event
+ * @param  {string} member        The name of the member, who has been assigned to
+ * @param  {string} collaborators A csv with the mails of the collaborators
+ * @param  {string} description   The description of the event
+ * @param  {string} location      The location of the event
+ */
 function addToGoogleCalendar(event, date, start, end, member, collaborators, description, location) {
   var ui = SpreadsheetApp.getUi(); // gets user interface
   var ssData = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
@@ -211,8 +238,6 @@ function addToGoogleCalendar(event, date, start, end, member, collaborators, des
   // Creating actual start and end dates
   var startDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), s.getHours(), s.getMinutes(), s.getSeconds(), s.getMilliseconds());
   var endDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), e.getHours(), e.getMinutes(), e.getSeconds(), e.getMilliseconds());
-
-  addToCalendar(event, startDate, endDate);
 
   // creating Google Calendar event
   var rowMember = searchRowMember(member);
@@ -300,7 +325,7 @@ function getNumElements(collection, separator) {
 /**
  * Transforms A1Notation column [A,B,C,...] to number [1,2,3,...]
  *
- * @param  {string} chr The character given
+ * @param  {string} chr The column given
  * @return {number} The number of the column
  */
 function getColumnNumber(chr) {
@@ -617,75 +642,6 @@ function deleteMember() {
 }
 //</editor-fold>
 
-//<editor-fold> Days
-function addDay() {
-  var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
-
-  var dayOption = ssTasks.getRange(TASKS_DAYS_DROPDOWN).getValue();
-  var daysChosenRange = ssTasks.getRange(TASKS_DAYS_CHOSEN);
-  var daysChosen = daysChosenRange.getValue();
-
-  // validating
-  if (dayOption == '') {
-    ui.alert(':(', 'You haven\'t choose a day from the dropdown list', ui.ButtonSet.OK);
-    return;
-  }
-  if (daysChosen.includes(dayOption))
-    return;
-
-  // entering data
-  var today = new Date();
-
-  if (dayOption == 'Everyday' || dayOption == 'Once every two days') {
-    if (dayOption == 'Everyday')
-      daysChosenRange.setValue(DAYS.join());
-    else if (dayOption == 'Once every two days') {
-
-      var days = '';
-      for (var i = 0; i < 3; i++) {
-        var index = (2 * i + today.getDay()) % 6;
-        days += (days == '') ? DAYS[index] : ',' + DAYS[index];
-      }
-
-      daysChosenRange.setValue(days);
-    } else
-      ui.alert('Wat?', 'This doesn\'t even make sense in the code, how did you do it tho?\nPlease tell me how you did it, I\'m impressed lol\n' + EMAIL, ui.ButtonSet.OK);
-  } else {
-    var days = (daysChosen == '') ? dayOption : daysChosen + "," + dayOption;
-    ssTasks.getRange(TASKS_DAYS_CHOSEN).setValue(days);
-  }
-}
-
-function removeDay() {
-  var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
-
-  var dayOption = ssTasks.getRange(TASKS_DAYS_DROPDOWN).getValue();
-  var daysChosenRange = ssTasks.getRange(TASKS_DAYS_CHOSEN);
-
-  // validating
-  if (dayOption == '') {
-    ui.alert(':(', 'You haven\'t choose a day from the dropdown list', ui.ButtonSet.OK);
-    return;
-  }
-  if (!daysChosenRange.getValue().includes(dayOption))
-    return;
-
-
-  daysChosenRange.setValue(daysChosenRange.getValue().replace(dayOption, '').replace(',,', ','));
-  var daysChosen = daysChosenRange.getValue();
-  if (daysChosen[0] == ',')
-    daysChosenRange.setValue(daysChosen.substring(1, daysChosen.length));
-  if (daysChosen[daysChosen.length - 1] == ',')
-    daysChosenRange.setValue(daysChosen.substring(0, daysChosen.length - 1));
-}
-
-function clearDays() {
-  SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS).getRange(TASKS_DAYS_CHOSEN).setValue('');
-}
-//</editor-fold>
-
 //<editor-fold> Collaborators
 function addCollaborator() {
   var ui = SpreadsheetApp.getUi(); // gets user interface
@@ -766,6 +722,20 @@ function clearEmailsColl() {
 
 //<editor-fold> Tasks and routines
 
+/**
+ * Sets the data event in SHEET_DATA and in SHEET_CALENDAR
+ *
+ * @param  {string} event       The name of the task or routine
+ * @param  {string} tr          'T' stands for task and 'R' for routine
+ * @param  {string} members     The emails of the members assigned
+ * @param  {string} from        The start hour
+ * @param  {string} to          The end hour
+ * @param  {string} description The description of the event
+ * @param  {string} location    The location where the event will take place
+ * @param  {(string|Array.<string>)} date        The date of the event, for routines this value should be the following dates
+ * @param  {string} days        A csv for the days ['Mon', 'Tue', ...] that the event will repeat (for tasks this value should be null)
+ * @param  {number} weeks       The number of weeks that the event will be repeating (for tasks this value should be null)
+ */
 function setDataEvent(event, tr, members, from, to, description, location, date, days, weeks) {
   var ui = SpreadsheetApp.getUi(); // gets user interface
   var ssData = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
@@ -783,126 +753,40 @@ function setDataEvent(event, tr, members, from, to, description, location, date,
   ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 8 + 1).setValue(days);
   ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 9 + 1).setValue(weeks);
 
-  // Converting parameters into Date objects
-  var d = new Date(date);
-  var s = new Date(from);
-  var e = new Date(to);
+  if (tr == 'T') {
+    // Converting parameters into Date objects
+    var d = new Date(date);
+    var s = new Date(from);
+    var e = new Date(to);
 
-  // Creating actual start and end dates
-  var startDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), s.getHours(), s.getMinutes(), s.getSeconds(), s.getMilliseconds());
-  var endDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), e.getHours(), e.getMinutes(), e.getSeconds(), e.getMilliseconds());
+    // Creating actual start and end dates
+    var startDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), s.getHours(), s.getMinutes(), s.getSeconds(), s.getMilliseconds());
+    var endDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), e.getHours(), e.getMinutes(), e.getSeconds(), e.getMilliseconds());
 
-  var cell = addToCalendar(event, startDate, endDate).getA1Notation();
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 2).setValue(cell);
-}
+    var cell = addToCalendar(event, startDate, endDate).getA1Notation();
+    ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 2).setValue(cell);
+  } else if (tr == 'R') {
+    // creating all necessary events in SHEET_CALENDAR
+    var arrDays = days.split(',');
+    var cells = '';
+    for (var i = 0; i < arrDays.length; i++) {
+      // Converting parameters into Date objects
+      var d = new Date(date[i]);
+      var s = new Date(from);
+      var e = new Date(to);
 
-function resetRoutineControls() {
-  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
-  ssTasks.getRange(TASKS_ROUTINE).setValue('');
-  ssTasks.getRange(TASKS_DAYS[0], TASKS_DAYS[1] + 1).setValue('');
-  ssTasks.getRange(TASKS_START).setValue('');
-  ssTasks.getRange(TASKS_END).setValue('');
-  ssTasks.getRange(TASKS_DURATION[0], TASKS_DURATION[1]).setValue('');
-  ssTasks.getRange(TASKS_COLLABORATORS).setValue('');
-  ssTasks.getRange(TASKS_DESCRIPTION).setValue('');
-  ssTasks.getRange(TASKS_LOCATION).setValue('');
-  SS_TASKS.getRange(TASKS_EMAILS_COLLABORATORS).setValue('');
-}
+      // Creating actual start and end dates
+      var startDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), s.getHours(), s.getMinutes(), s.getSeconds(), s.getMilliseconds());
+      var endDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), e.getHours(), e.getMinutes(), e.getSeconds(), e.getMilliseconds());
 
-function addRoutine() {
-  var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
-
-  // verifies if it is in routine mode
-  if (ssTasks.getRange(TASKS_SWITCH).getValue().includes('routine')) {
-    ui.alert('Ups! Wrong button', 'You are in task mode, you need to click ' + TASKS_SWITCH + ' button to change to routine mode if you want to create a routine', ui.ButtonSet.OK);
-    return;
-  }
-
-  if (!isEmptyValue(SS_TASKS.getRange(TASKS_COLLABORATORS).getValue()))
-    if (UI.alert('😯', 'It seems that you wanted to add a collaborator but you didn\'t click the "Add" button next to the cell in which you chose the collaborator\'s name\n\nIf you click "Ok", that collaborator will be ignored, otherwise you can click "Cancel" and go click the "Add" button to add that collaborator', UI.ButtonSet.OK_CANCEL) != UI.Button.OK)
-      return;
-
-  var routine = ssTasks.getRange(TASKS_ROUTINE).getValue();
-  var member = ssTasks.getRange(TASKS_MEMBER).getValue();
-  var days = ssTasks.getRange(TASKS_DAYS_CHOSEN).getValue();
-  var duration = ssTasks.getRange(TASKS_DURATION[0], TASKS_DURATION[1]).getValue();
-  var start = ssTasks.getRange(TASKS_START).getValue();
-  var end = ssTasks.getRange(TASKS_END).getValue();
-  var collaborators = ssTasks.getRange(TASKS_EMAILS_COLLABORATORS).getValue();
-  var description = ssTasks.getRange(TASKS_DESCRIPTION).getValue();
-  var location = ssTasks.getRange(TASKS_LOCATION).getValue();
-
-  var isValid = true;
-  if (routine == '') {
-    ui.alert('Missing routine [' + TASKS_ROUTINE + ']');
-    isValid = false;
-  }
-  if (member == '') {
-    ui.alert('Missing member [' + TASKS_MEMBER + ']');
-    isValid = false;
-  }
-  if (days == '') {
-    ui.alert('Missing days [' + TASKS_DAYS_CHOSEN + ']');
-    isValid = false;
-  }
-  if (duration == '') {
-    ui.alert('Missing duration [' + TASKS_DURATION + ']');
-    isValid = false;
-  }
-  if (start == '') {
-    ui.alert('Missing start time [' + TASKS_START + ']');
-    isValid = false;
-  }
-  if (end == '') {
-    ui.alert('Missing end time [' + TASKS_END + ']');
-    isValid = false;
-  }
-  if (new Date(start).getHours() > new Date(end).getHours()) {
-    ui.alert('Start hour greater than end hour');
-    isValid = false;
-  }
-
-  if (!isValid)
-    return;
-
-  // all data is valid, proceed to manage it
-  var rowMember = searchRowMember(member) - 1;
-  if (rowMember == -1) {
-    ui.prompt('😢 No member found', 'Make sure the member is in the sheet "' + SHEET_DATA + '"\n(Or that you have properly chosen within the dropdown list of ' + TASKS_MEMBER + ')', ui.ButtonSet.OK);
-    return;
-  }
-
-  // creating routine
-  var today = new Date();
-  var numDay = today.getDay() - 1;
-  var arrDays = days.split(',');
-  var arrNumDays = [];
-
-  // getting difference from today's date
-  for (var i = 0; i < arrDays.length; i++) {
-    var dif = getIndexOf(arrDays[i], DAYS) - numDay;
-    arrNumDays.push((dif <= 0) ? 7 + dif : dif);
-  }
-  arrNumDays.sort();
-
-  // getting next days from today on
-  var nextDates = [];
-  for (var i = 0; i < duration; i++) {
-    for (var j = 0; j < arrNumDays.length; j++) {
-      var nextDate = new Date(today);
-      nextDate.setDate(today.getDate() + arrNumDays[j] + 7 * i)
-      nextDates.push(nextDate);
+      cells += addToCalendar(event, startDate, endDate).getA1Notation();
+      if (i != arrDays.length - 1)
+        cells += ',';
     }
+    SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, getColumnNumber(DATA_CALENDAR_CELL[0])).setValue(cells);
+  } else {
+    throw 'No correct usage for "tr" variable in setDataEvent(), use "T" for Tasks and "R" for Routines';
   }
-
-  // creating calendar events
-  for (var i = 0; i < nextDates.length; i++) {
-    addToGoogleCalendar(routine, nextDates[i], start, end, member, collaborators, description, location);
-  }
-
-  // resetting controls
-  resetRoutineControls();
 }
 
 function resetTaskControls() {
@@ -928,7 +812,8 @@ function addTask() {
     return;
   }
 
-  if (!isEmptyValue(SS_TASKS.getRange(TASKS_COLLABORATORS).getValue()))
+  // collaborator not added notification
+  if (!isEmptyValue(SS_TASKS.getRange(TASKS_COLLABORATORS).getValue(), null))
     if (UI.alert('😯', 'It seems that you wanted to add a collaborator but you didn\'t click the "Add" button next to the cell in which you chose the collaborator\'s name\n\nIf you click "Ok", that collaborator will be ignored, otherwise you can click "Cancel" and go click the "Add" button to add that collaborator', UI.ButtonSet.OK_CANCEL) != UI.Button.OK)
       return;
 
@@ -999,9 +884,8 @@ function addTask() {
   if (collaborators != '')
     setTask(collaborators.split(','), task);
 
-  //<editor-fold> Giving value percentages
+  // Giving value percentages
   setValues(row, noRows);
-  //</editor-fold>
 
   // placing info in _Data
   var rowMember = searchRowMember(member);
@@ -1048,6 +932,210 @@ function switchTaskRoutine() {
 
     switchCaption.setValue('Switch to routine');
   }
+}
+
+//<editor-fold> Days
+function addDay() {
+  var ui = SpreadsheetApp.getUi(); // gets user interface
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
+
+  var dayOption = ssTasks.getRange(TASKS_DAYS_DROPDOWN).getValue();
+  var daysChosenRange = ssTasks.getRange(TASKS_DAYS_CHOSEN);
+  var daysChosen = daysChosenRange.getValue();
+
+  // validating
+  if (dayOption == '') {
+    ui.alert(':(', 'You haven\'t choose a day from the dropdown list', ui.ButtonSet.OK);
+    return;
+  }
+  if (daysChosen.includes(dayOption)) {
+    // clearing day chosen
+    SS_TASKS.getRange(TASKS_DAYS_DROPDOWN).setValue('');
+    return;
+  }
+
+  // entering data
+  var today = new Date();
+
+  if (dayOption == 'Everyday' || dayOption == 'Once every two days') {
+    if (dayOption == 'Everyday')
+      daysChosenRange.setValue(DAYS.join());
+    else if (dayOption == 'Once every two days') {
+
+      var days = '';
+      for (var i = 0; i < 3; i++) {
+        var index = (2 * i + today.getDay()) % 6;
+        days += (days == '') ? DAYS[index] : ',' + DAYS[index];
+      }
+
+      daysChosenRange.setValue(days);
+    } else
+      ui.alert('Wat?', 'This doesn\'t even make sense in the code, how did you do it tho?\nPlease tell me how you did it, I\'m impressed lol\n' + EMAIL, ui.ButtonSet.OK);
+  } else {
+    var days = (daysChosen == '') ? dayOption : daysChosen + "," + dayOption;
+    ssTasks.getRange(TASKS_DAYS_CHOSEN).setValue(days);
+  }
+
+  // clearing day chosen
+  SS_TASKS.getRange(TASKS_DAYS_DROPDOWN).setValue('');
+}
+
+function removeDay() {
+  var ui = SpreadsheetApp.getUi(); // gets user interface
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
+
+  var dayOption = ssTasks.getRange(TASKS_DAYS_DROPDOWN).getValue();
+  var daysChosenRange = ssTasks.getRange(TASKS_DAYS_CHOSEN);
+
+  // validating
+  if (dayOption == '') {
+    ui.alert(':(', 'You haven\'t choose a day from the dropdown list', ui.ButtonSet.OK);
+    return;
+  }
+  if (!daysChosenRange.getValue().includes(dayOption))
+    return;
+
+
+  daysChosenRange.setValue(daysChosenRange.getValue().replace(dayOption, '').replace(',,', ','));
+  var daysChosen = daysChosenRange.getValue();
+  if (daysChosen[0] == ',')
+    daysChosenRange.setValue(daysChosen.substring(1, daysChosen.length));
+  if (daysChosen[daysChosen.length - 1] == ',')
+    daysChosenRange.setValue(daysChosen.substring(0, daysChosen.length - 1));
+}
+
+function clearDays() {
+  SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS).getRange(TASKS_DAYS_CHOSEN).setValue('');
+}
+//</editor-fold>
+
+function resetRoutineControls() {
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
+  ssTasks.getRange(TASKS_ROUTINE).setValue('');
+  ssTasks.getRange(TASKS_DAYS[0], TASKS_DAYS[1] + 1).setValue('');
+  ssTasks.getRange(TASKS_START).setValue('');
+  ssTasks.getRange(TASKS_END).setValue('');
+  ssTasks.getRange(TASKS_DURATION[0], TASKS_DURATION[1]).setValue('');
+  ssTasks.getRange(TASKS_COLLABORATORS).setValue('');
+  ssTasks.getRange(TASKS_DESCRIPTION).setValue('');
+  ssTasks.getRange(TASKS_LOCATION).setValue('');
+  SS_TASKS.getRange(TASKS_DAYS_CHOSEN).setValue('');
+  SS_TASKS.getRange(TASKS_EMAILS_COLLABORATORS).setValue('');
+}
+
+function addRoutine() {
+  var ui = SpreadsheetApp.getUi(); // gets user interface
+  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
+
+  // <editor-fold> Retrieving and validating data
+  // verifies if it is in routine mode
+  if (ssTasks.getRange(TASKS_SWITCH).getValue().includes('routine')) {
+    ui.alert('Ups! Wrong button', 'You are in task mode, you need to click ' + TASKS_SWITCH + ' button to change to routine mode if you want to create a routine', ui.ButtonSet.OK);
+    return;
+  }
+
+  // collaborator not added notification
+  if (!isEmptyValue(SS_TASKS.getRange(TASKS_COLLABORATORS).getValue(), null))
+    if (UI.alert('😯', 'It seems that you wanted to add a collaborator but you didn\'t click the "Add" button next to the cell in which you chose the collaborator\'s name\n\nIf you click "Ok", that collaborator will be ignored, otherwise you can click "Cancel" and go click the "Add" button to add that collaborator', UI.ButtonSet.OK_CANCEL) != UI.Button.OK)
+      return;
+
+  // days not added notification
+  if (!isEmptyValue(SS_TASKS.getRange(TASKS_DAYS_DROPDOWN).getValue(), null))
+    if (UI.alert('😲', 'Did you wanted to add days to the routine?\nYou didn\'t click the "Add" button next to the dropdown menu, the days you choose will be displayed in cell [' + TASKS_DAYS_CHOSEN + ']', UI.ButtonSet.OK_CANCEL) != UI.Button.OK)
+      return;
+
+  var routine = ssTasks.getRange(TASKS_ROUTINE).getValue();
+
+  if (searchEvent(routine, 'R') != -1) {
+    UI.alert(':(', 'It already exists a routine with the name "' + routine + '", you have to choose a different one, in order to create the routine', UI.ButtonSet.OK);
+    return;
+  }
+
+  var member = ssTasks.getRange(TASKS_MEMBER).getValue();
+  var days = ssTasks.getRange(TASKS_DAYS_CHOSEN).getValue();
+  var duration = ssTasks.getRange(TASKS_DURATION[0], TASKS_DURATION[1]).getValue();
+  var start = ssTasks.getRange(TASKS_START).getValue();
+  var end = ssTasks.getRange(TASKS_END).getValue();
+  var collaborators = ssTasks.getRange(TASKS_EMAILS_COLLABORATORS).getValue();
+  var description = ssTasks.getRange(TASKS_DESCRIPTION).getValue();
+  var location = ssTasks.getRange(TASKS_LOCATION).getValue();
+
+  var isValid = true;
+  if (routine == '') {
+    ui.alert('Missing routine [' + TASKS_ROUTINE + ']');
+    isValid = false;
+  }
+  if (member == '') {
+    ui.alert('Missing member [' + TASKS_MEMBER + ']');
+    isValid = false;
+  }
+  if (days == '') {
+    ui.alert('Missing days [' + TASKS_DAYS_CHOSEN + ']');
+    isValid = false;
+  }
+  if (duration == '') {
+    ui.alert('Missing duration [' + TASKS_DURATION + ']');
+    isValid = false;
+  }
+  if (start == '') {
+    ui.alert('Missing start time [' + TASKS_START + ']');
+    isValid = false;
+  }
+  if (end == '') {
+    ui.alert('Missing end time [' + TASKS_END + ']');
+    isValid = false;
+  }
+  if (new Date(start).getHours() > new Date(end).getHours()) {
+    ui.alert('Start hour greater than end hour');
+    isValid = false;
+  }
+
+  if (!isValid)
+    return;
+  // </editor-fold>
+
+  // all data is valid, proceed to manage it
+  var rowMember = searchRowMember(member) - 1;
+  if (rowMember == -1) {
+    ui.prompt('😢 No member found', 'Make sure the member is in the sheet "' + SHEET_DATA + '"\n(Or that you have properly chosen within the dropdown list of ' + TASKS_MEMBER + ')', ui.ButtonSet.OK);
+    return;
+  }
+
+  // creating routine
+  var today = new Date();
+  var numDay = today.getDay() - 1;
+  var arrDays = days.split(',');
+  var arrNumDays = [];
+
+  // getting difference from today's date
+  for (var i = 0; i < arrDays.length; i++) {
+    var dif = getIndexOf(arrDays[i], DAYS) - numDay;
+    arrNumDays.push((dif <= 0) ? 7 + dif : dif);
+  }
+  arrNumDays.sort();
+
+  // getting next dates from today on
+  var nextDates = [];
+  for (var i = 0; i < duration; i++) {
+    for (var j = 0; j < arrNumDays.length; j++) {
+      var nextDate = new Date(today);
+      nextDate.setDate(today.getDate() + arrNumDays[j] + 7 * i)
+      nextDates.push(nextDate);
+    }
+  }
+
+  var rowMember = searchRowMember(member);
+  var email = SS_DATA.getRange(rowMember, DATA_EMAIL_COL).getValue();
+
+  // creating calendar events
+  for (var i = 0; i < nextDates.length; i++) {
+    addToGoogleCalendar(routine, nextDates[i], start, end, member, collaborators, description, location);
+  }
+
+  setDataEvent(routine, 'R', (collaborators == '') ? email : email + "," + collaborators, start, end, description, location, nextDates, days, duration);
+
+  // resetting controls
+  resetRoutineControls();
 }
 
 //</editor-fold>
@@ -1131,6 +1219,37 @@ function weeklyCut() {
   rules.push(createRuleInInterval(appVal, 1, COLOR_APPROVED, achievedRange));
   rules.push(createRule(true, 1, COLOR_EXCELLENCE, achievedRange));
   SS_HISTORY.setConditionalFormatRules(rules);
+}
+
+function deleteEvent() {
+  // retrieving and validating
+  var event = SS_TASKS.getRange(TASKS_EVENT_CHOSEN).getValue();
+  if (isEmptyValue(event, '): you did not choose an event from [' + TASKS_EVENT_CHOSEN + ']'))
+    return;
+
+  var rowEvent = searchEvent(event, 'T');
+  // task
+  if (rowEvent != -1) {
+    UI.alert(rowEvent);
+
+    // TODO: shift up task in SHEET_TASKS for each member that has the task
+  }
+  // event
+  else {
+    // validating
+    rowEvent = searchEvent(event, 'R');
+    if (rowEvent == -1) {
+      UI.alert('An error has ocurred):', 'The routine "' + event + '" could not be found in "' + SHEET_DATA + '"\nYou will have to delete it manually by selecting the cells of "' + event + '" from column [' + DATA_EVENT[0] + '] to column [' + DATA_WEEKS[0] + '] and shifting them up', UI.ButtonSet.OK);
+      return;
+    }
+
+    // TODO: Delete from SHEET_DATA
+
+    var calendarCells = SS_DATA.getRange(rowEvent, getColumnNumber(DATA_CALENDAR_CELL)).getValue().split(',');
+    UI.alert(calendarCells);
+
+    // TODO: DELETE from SHEET_CALENDAR with removeFromCalendar()
+  }
 }
 
 // MISSING

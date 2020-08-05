@@ -16,6 +16,8 @@ const DATA_EVENT = 'H2';
 const DATA_TASKROUTINE = 'I2';
 /** @constant {String} - Represents the header of the column where a cell from SHEET_CALENDAR is storing an event */
 const DATA_CALENDAR_CELL = 'J2';
+/** @constant {String} - Represents the header of the column where the members of the event are stored */
+const DATA_MEMBERS_CELL = 'K2';
 const DATA_WEEKS = 'R2';
 const DATA_EVENT_COL = 8;
 const DATA_INITIAL_EVENT_ROW = 3;
@@ -24,6 +26,8 @@ const DATA_DEFAULT_APPROVE_VAL = 60;
 const TASKS_MEMBER_INCREMENT = 5;
 const TASKS_TITLES_COL = 1;
 const TASKS_VALUES_COL = 2;
+/** @constant {String} - Represents the column where most of the values for tasks & routines are stored */
+const TASKS_VALUES_COLUMN = 'B';
 const TASKS_TASK = 'B1';
 const TASKS_TASK_ROW = 1;
 const TASKS_ROUTINE = 'B2';
@@ -52,9 +56,11 @@ const TASKS_CHECKBOX_COL = 4;
 const TASKS_H_M_COLUMN = 'E';
 const TASKS_ACHIEVEMENT_COLUMN = 'F';
 const TASKS_TOTAL_COLUMN = 'G';
-const NUM_TASKS = 8;
 const TASKS_VALUES_TASKS_COL = 3;
 const TASKS_NON_FIX_VALUES = 'A13';
+
+const NUM_TASKS = 8;
+
 /** @constant {string} - Cell where user chooses an event from SHEET_DATA to delete it */
 const TASKS_EVENT_CHOSEN = 'D11';
 // SHEET_CALENDAR constants
@@ -90,7 +96,14 @@ const COLOR_EXCELLENCE = '#4285f4';
 
 //    <editor-fold> Common functions
 
-//<editor-fold> Search
+//<editor-fold> Searchers and getters
+
+/**
+ * Searches for the row where a member is stored in SHEET_DATA
+ *
+ * @param  {string} member A name of some member
+ * @return {number}        Returns the exact row where the first ocurrence appeared
+ */
 function searchRowMember(member) {
   var data = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA).getDataRange().getValues();
 
@@ -101,6 +114,12 @@ function searchRowMember(member) {
   return -1;
 }
 
+/**
+ * Searches for the row where a member's email is stored in SHEET_DATA
+ *
+ * @param  {string} email An email of some member
+ * @return {number}       Returns the exact row where the first ocurrence appeared
+ */
 function searchRowEmail(email) {
   var data = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA).getDataRange().getValues();
 
@@ -204,8 +223,22 @@ function addToCalendar(event, startDate, endDate) {
   return eventRange;
 }
 
-function removeFromCalendar(range) {
+/**
+ * Removes an event in a specified cell
+ *
+ * @param  {string} cell  The cell where the event is contained in SHEET_CALENDAR
+ * @param  {string} event The name of the task or routine
+ */
+function removeFromCalendar(cell, event) {
+  try {
+    var range = SS_CALENDAR.getRange(cell);
+  } catch (e) {
+    UI.alert('Cannot delete from "!' + SHEET_CALENDAR + '" range "' + range + '"\n\nException: ' + e);
+    return;
+  }
 
+  // removing
+  range.setValue(deleteSubstring(range.getValue(), event, ";"));
 }
 
 /**
@@ -263,7 +296,7 @@ function addToGoogleCalendar(event, date, start, end, member, collaborators, des
 }
 //</editor-fold>
 
-//<editor-fold> Other
+// <editor-fold> Ranges
 
 /**
  * Gets the last row number within a given range
@@ -309,28 +342,7 @@ function getLastColumn(range, limit) {
   return max;
 }
 
-function getNumElements(collection, separator) {
-  if (collection == '')
-    return 0;
-
-  var num = 1;
-
-  for (var i = 0; i < collection.length; i++)
-    if (collection[i] == separator)
-      num++;
-
-  return num;
-}
-
-/**
- * Transforms A1Notation column [A,B,C,...] to number [1,2,3,...]
- *
- * @param  {string} chr The column given
- * @return {number} The number of the column
- */
-function getColumnNumber(chr) {
-  return chr.toLowerCase().charCodeAt(0) - 97 + 1;
-}
+//  <editor-fold> Conditional formatting
 
 /**
  * Creates a new conditional format rule within a interval of numbers
@@ -373,6 +385,35 @@ function createRule(isGreater, limit, background, range) {
       .build();
 }
 
+//  </editor-fold>
+
+// </editor-fold>
+
+//<editor-fold> Other
+
+function getNumElements(collection, separator) {
+  if (collection == '')
+    return 0;
+
+  var num = 1;
+
+  for (var i = 0; i < collection.length; i++)
+    if (collection[i] == separator)
+      num++;
+
+  return num;
+}
+
+/**
+ * Transforms A1Notation column [A,B,C,...] to number [1,2,3,...]
+ *
+ * @param  {string} chr The column given
+ * @return {number} The number of the column
+ */
+function getColumnNumber(chr) {
+  return chr.toLowerCase().charCodeAt(0) - 97 + 1;
+}
+
 /**
  * Verifies if a value is empty or not, and shows a message when value is empty if desired
  *
@@ -390,6 +431,27 @@ function isEmptyValue(value, message) {
 
   return false;
 }
+
+/**
+ * Deletes a substring from a string that it is CSV like
+ *
+ * @param  {string} original  The original string
+ * @param  {string} substring A substring to delete
+ * @param  {string} separator The separator of the original string
+ * @return {string}           The string without the substring
+ */
+function deleteSubstring(original, substring, separator) {
+  var resStr = original.replace(substring, "").replace(separator + separator, separator);
+
+  // three cases, which one has been covered above
+  if (resStr[0] == separator)
+    return resStr.slice(1);
+  else if (resStr[resStr.length - 1] == separator)
+    return resStr.slice(0, resStr.length - 1);
+
+  return resStr;
+}
+
 //</editor-fold>
 
 //<editor-fold> Tasks
@@ -860,6 +922,11 @@ function addTask() {
 
   if (!isValid)
     return;
+
+  if (task.includes(';')) {
+    UI.alert(':(', 'The name of the task "' + task + '" includes an illegal character ";"\n\nPlease use a comma (,) or a period (.) instead', UI.ButtonSet.OK);
+    return;
+  }
   //</editor-fold>
 
   // all data is valid, proceed to manage it
@@ -1092,6 +1159,11 @@ function addRoutine() {
 
   if (!isValid)
     return;
+
+  if (routine.includes(';')) {
+    UI.alert(':(', 'The name of the routine "' + routine + '" includes an illegal character ";"\n\nPlease use a comma (,) or a period (.) instead', UI.ButtonSet.OK);
+    return;
+  }
   // </editor-fold>
 
   // all data is valid, proceed to manage it
@@ -1221,18 +1293,66 @@ function weeklyCut() {
   SS_HISTORY.setConditionalFormatRules(rules);
 }
 
+/**
+ * Deletes a task from the list of tasks displayed in SHEET_TASKS for a specified member
+ *
+ * @param  {string} task   The name of the task
+ * @param  {string} email  An email of some member
+ */
+function deleteTask(task, email) {
+  var rowMember = 10 * (searchRowEmail(email) - 1) + TASKS_MEMBER_INCREMENT;
+
+  // looks for the number of the task row
+  var rowTask = -1;
+  for (var i = 1; i <= NUM_TASKS; i++)
+    if (SS_TASKS.getRange(TASKS_VALUES_COLUMN + (rowMember + i).toString()).getValue() == task) {
+      rowTask = rowMember + i;
+      break;
+    }
+
+  // deleting range
+  SS_TASKS.getRange(TASKS_VALUES_COLUMN + rowTask.toString() + ':' + TASKS_ACHIEVEMENT_COLUMN + rowTask.toString()).deleteCells(SpreadsheetApp.Dimension.ROWS);
+
+  // this error can happen when the user has previously deleted manually the task
+  if (rowTask == -1) {
+    UI.alert('): error...', 'An error has ocurred while trying to delete the task "' + task + '" for "' + email + '"\n\nYou\'ll have to delete manually if it is still in the member tasks list', UI.ButtonSet.OK);
+    return;
+  }
+
+  var lastRowIndex = (rowMember + NUM_TASKS).toString();
+  // inserting deleted shifted up cells
+  SS_TASKS.getRange(TASKS_VALUES_COLUMN + lastRowIndex + ':' + TASKS_ACHIEVEMENT_COLUMN + lastRowIndex).insertCells(SpreadsheetApp.Dimension.ROWS);
+  // giving format to value
+  SS_TASKS.getRange(TASKS_VALUE_COLUMN + lastRowIndex).setValue('').setNumberFormat('0.00%').setFontWeight("normal");
+  // creating checkbox
+  var enforceCheckbox = SpreadsheetApp.newDataValidation();
+  enforceCheckbox.requireCheckbox();
+  enforceCheckbox.setAllowInvalid(false);
+  enforceCheckbox.build();
+  SS_TASKS.getRange(TASKS_CHECKBOX_COLUMN + lastRowIndex).setDataValidation(enforceCheckbox);
+  // how much and achievement
+  SS_TASKS.getRange(TASKS_H_M_COLUMN + lastRowIndex + ':' + TASKS_ACHIEVEMENT_COLUMN + lastRowIndex).setNumberFormat('0.00%').setFontWeight("normal").setValue(0);
+  SS_TASKS.getRange(TASKS_ACHIEVEMENT_COLUMN + lastRowIndex).setFormula('=IF(' + TASKS_CHECKBOX_COLUMN + +lastRowIndex + '=TRUE, ' + TASKS_VALUE_COLUMN + +lastRowIndex + ', ' + TASKS_H_M_COLUMN + +lastRowIndex + '*' + TASKS_VALUE_COLUMN + lastRowIndex + ')');
+}
+
 function deleteEvent() {
   // retrieving and validating
   var event = SS_TASKS.getRange(TASKS_EVENT_CHOSEN).getValue();
-  if (isEmptyValue(event, '): you did not choose an event from [' + TASKS_EVENT_CHOSEN + ']'))
+  if (isEmptyValue(event, '): you did not choose an event from [' + TASKS_EVENT_CHOSEN + ']')) // THIS
     return;
 
   var rowEvent = searchEvent(event, 'T');
   // task
   if (rowEvent != -1) {
-    UI.alert(rowEvent);
+    var calendarCell = SS_DATA.getRange(rowEvent, getColumnNumber(DATA_CALENDAR_CELL)).getValue();
+
+    // deletes from SHEET_CALENDAR the event that is in SHEET_CALENDAR
+    removeFromCalendar(calendarCell, event);
 
     // TODO: shift up task in SHEET_TASKS for each member that has the task
+    var emails = SS_DATA.getRange(DATA_MEMBERS_CELL[0] + rowEvent.toString()).getValue().toString().split(',');
+    for (var email of emails)
+      deleteTask(event, email)
   }
   // event
   else {
@@ -1243,13 +1363,16 @@ function deleteEvent() {
       return;
     }
 
-    // TODO: Delete from SHEET_DATA
-
     var calendarCells = SS_DATA.getRange(rowEvent, getColumnNumber(DATA_CALENDAR_CELL)).getValue().split(',');
-    UI.alert(calendarCells);
 
-    // TODO: DELETE from SHEET_CALENDAR with removeFromCalendar()
+    // deletes from SHEET_CALENDAR each event that is in SHEET_CALENDAR
+    for (var cell of calendarCells)
+      removeFromCalendar(cell, event);
   }
+  // deletes from SHEET_DATA
+  SS_DATA.getRange(DATA_EVENT[0] + rowEvent.toString() + ":" + DATA_WEEKS[0] + rowEvent.toString()).deleteCells(SpreadsheetApp.Dimension.ROWS);
+  // resets in SHEET_TASKS
+  SS_TASKS.getRange(TASKS_EVENT_CHOSEN).setValue('');
 }
 
 // MISSING

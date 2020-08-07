@@ -1,14 +1,11 @@
 function addDay() {
-  var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
-
-  var dayOption = ssTasks.getRange(TASKS_DAYS_DROPDOWN).getValue();
-  var daysChosenRange = ssTasks.getRange(TASKS_DAYS_CHOSEN);
+  var dayOption = SS_TASKS.getRange(TASKS_DAYS_DROPDOWN).getValue();
+  var daysChosenRange = SS_TASKS.getRange(TASKS_DAYS_CHOSEN);
   var daysChosen = daysChosenRange.getValue();
 
   // validating
   if (dayOption == '') {
-    ui.alert(':(', 'You haven\'t choose a day from the dropdown list', ui.ButtonSet.OK);
+    UI.alert(':(', 'You haven\'t choose a day from the dropdown list', UI.ButtonSet.OK);
     return;
   }
   if (daysChosen.includes(dayOption)) {
@@ -33,10 +30,10 @@ function addDay() {
 
       daysChosenRange.setValue(days);
     } else
-      ui.alert('Wat?', 'This doesn\'t even make sense in the code, how did you do it tho?\nPlease tell me how you did it, I\'m impressed lol\n' + EMAIL, ui.ButtonSet.OK);
+      UI.alert('Wat?', 'This doesn\'t even make sense in the code, how did you do it tho?\nPlease tell me how you did it, I\'m impressed lol\n' + EMAIL, UI.ButtonSet.OK);
   } else {
     var days = (daysChosen == '') ? dayOption : daysChosen + "," + dayOption;
-    ssTasks.getRange(TASKS_DAYS_CHOSEN).setValue(days);
+    SS_TASKS.getRange(TASKS_DAYS_CHOSEN).setValue(days);
   }
 
   // clearing day chosen
@@ -44,15 +41,12 @@ function addDay() {
 }
 
 function removeDay() {
-  var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
-
-  var dayOption = ssTasks.getRange(TASKS_DAYS_DROPDOWN).getValue();
-  var daysChosenRange = ssTasks.getRange(TASKS_DAYS_CHOSEN);
+  var dayOption = SS_TASKS.getRange(TASKS_DAYS_DROPDOWN).getValue();
+  var daysChosenRange = SS_TASKS.getRange(TASKS_DAYS_CHOSEN);
 
   // validating
   if (dayOption == '') {
-    ui.alert(':(', 'You haven\'t choose a day from the dropdown list', ui.ButtonSet.OK);
+    UI.alert(':(', 'You haven\'t choose a day from the dropdown list', UI.ButtonSet.OK);
     return;
   }
   if (!daysChosenRange.getValue().includes(dayOption))
@@ -68,5 +62,5 @@ function removeDay() {
 }
 
 function clearDays() {
-  SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS).getRange(TASKS_DAYS_CHOSEN).setValue('');
+  SS_TASKS.getRange(TASKS_DAYS_CHOSEN).setValue('');
 }

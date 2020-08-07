@@ -7,7 +7,6 @@ function getIndexOf(element, collection) {
   return -1;
 }
 
-
 /**
  * Gets the last row number within a given range
  * @param {Range} range - A range can be a single cell in a sheet or a group of adjacent cells in a sheet
@@ -74,7 +73,6 @@ function getNumElements(collection, separator) {
 function getColumnNumber(chr) {
   return chr.toLowerCase().charCodeAt(0) - 97 + 1;
 }
-
 
 /**
  * Creates a new conditional format rule within a interval of numbers

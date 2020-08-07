@@ -1,4 +1,3 @@
-
 /**
  * Creates an event in Google Calendar
  *
@@ -12,12 +11,9 @@
  * @param  {string} location      The location of the event
  */
 function addToGoogleCalendar(event, date, start, end, member, collaborators, description, location) {
-  var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssData = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
-
-  var calendarId = ssData.getRange(DATA_CAL_ID).getValue();
+  var calendarId = SS_DATA.getRange(DATA_CAL_ID).getValue();
   if (calendarId == '') {
-    ui.alert("🤔", "There is no calendar ID in " + SHEET_DATA + "!" + DATA_CAL_ID + "\nMake sure to set this up in order to arrange the tasks you give in Google Calendar(:", ui.ButtonSet.OK);
+    UI.alert("🤔", "There is no calendar ID in " + SHEET_DATA + "!" + DATA_CAL_ID + "\nMake sure to set this up in order to arrange the tasks you give in Google Calendar(:", UI.ButtonSet.OK);
     return;
   }
 
@@ -32,11 +28,11 @@ function addToGoogleCalendar(event, date, start, end, member, collaborators, des
 
   // creating Google Calendar event
   var rowMember = searchRowMember(member);
-  var email = ssData.getRange(rowMember, DATA_EMAIL_COL).getValue();
+  var email = SS_DATA.getRange(rowMember, DATA_EMAIL_COL).getValue();
 
   // checking again collaborators
   if (collaborators.includes(email)) {
-    ui.alert('🙃', 'did ya really insisted on havin the same member as his own collaborator???\nit\'s okay, nevermind I gotcha', ui.ButtonSet.OK);
+    UI.alert('🙃', 'did ya really insisted on havin the same member as his own collaborator???\nit\'s okay, nevermind I gotcha', UI.ButtonSet.OK);
     email = collaborators;
     collaborators = '';
   }

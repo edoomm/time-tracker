@@ -1,7 +1,4 @@
 function weeklyCut() {
-  var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssTasks = SpreadsheetApp.getActive().getSheetByName(SHEET_TASKS);
-
   if (getMembershipNumber() == 0)
     return;
 
@@ -15,8 +12,8 @@ function weeklyCut() {
 
   for (var rowMember = 1; rowMember <= getMembershipNumber(); rowMember++) {
     var row = 10 * rowMember + TASKS_MEMBER_INCREMENT;
-    var noRows = getLastRow(ssTasks.getRange(row, TASKS_VALUES_COL, NUM_TASKS + 1));
-    var tasksRange = ssTasks.getRange(row, TASKS_VALUES_COL, NUM_TASKS + 1, 3);
+    var noRows = getLastRow(SS_TASKS.getRange(row, TASKS_VALUES_COL, NUM_TASKS + 1));
+    var tasksRange = SS_TASKS.getRange(row, TASKS_VALUES_COL, NUM_TASKS + 1, 3);
 
     // adding to history
     SS_HISTORY.getRange(rowMember + 1, noWeekColumn + 1).setValue(SS_TASKS.getRange(row + 1, getColumnNumber(TASKS_TOTAL_COLUMN)).getValue());
@@ -35,17 +32,17 @@ function weeklyCut() {
 
     // deleting cells
     for (var i = rowsToDelete.length - 1; i >= 0; i--) {
-      ssTasks.getRange(rowsToDelete[i], TASKS_VALUES_COL, 1, 2).deleteCells(SpreadsheetApp.Dimension.ROWS);
-      ssTasks.getRange(rowsToDelete[i], getColumnNumber(TASKS_CHECKBOX_COLUMN)).setValue(false);
+      SS_TASKS.getRange(rowsToDelete[i], TASKS_VALUES_COL, 1, 2).deleteCells(SpreadsheetApp.Dimension.ROWS);
+      SS_TASKS.getRange(rowsToDelete[i], getColumnNumber(TASKS_CHECKBOX_COLUMN)).setValue(false);
     }
 
     // inserting deleted cells
     for (var i = 0; i < rowsToDelete.length; i++)
-      ssTasks.getRange(row + 9 - rowsToDelete.length, TASKS_VALUES_COL, 1, 2).insertCells(SpreadsheetApp.Dimension.ROWS);
+      SS_TASKS.getRange(row + 9 - rowsToDelete.length, TASKS_VALUES_COL, 1, 2).insertCells(SpreadsheetApp.Dimension.ROWS);
 
     if (rowsToDelete.length > 0) {
       // format values
-      ssTasks.getRange(row + 1, getColumnNumber(TASKS_VALUE_COLUMN), NUM_TASKS).setNumberFormat('0.00%').setFontWeight("normal");
+      SS_TASKS.getRange(row + 1, getColumnNumber(TASKS_VALUE_COLUMN), NUM_TASKS).setNumberFormat('0.00%').setFontWeight("normal");
       // achievements
       setAchievementRange(row);
     }

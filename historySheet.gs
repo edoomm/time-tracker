@@ -1,4 +1,4 @@
-//Funcions that changing history sheet
+//Funcions for changing history sheet
 
 /**
  * Deletes all the information contained in SS_HISTORY

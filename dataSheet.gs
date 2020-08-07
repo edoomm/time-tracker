@@ -1,6 +1,12 @@
-//Functions that changing data sheet
+//Functions for changing data sheet
+/**
+ * Searches for the row where a member is stored in SHEET_DATA
+ *
+ * @param  {string} member A name of some member
+ * @return {number}        Returns the exact row where the first ocurrence appeared
+ */
 function searchRowMember(member) {
-  var data = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA).getDataRange().getValues();
+  var data = SS_DATA.getDataRange().getValues();
 
   for (var i = 0; i < data.length; i++)
     if (data[i][0] == member)
@@ -9,8 +15,14 @@ function searchRowMember(member) {
   return -1;
 }
 
+/**
+ * Searches for the row where a member's email is stored in SHEET_DATA
+ *
+ * @param  {string} email An email of some member
+ * @return {number}       Returns the exact row where the first ocurrence appeared
+ */
 function searchRowEmail(email) {
-  var data = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA).getDataRange().getValues();
+  var data = SS_DATA.getDataRange().getValues();
 
   for (var i = 0; i < data.length; i++)
     if (data[i][1] == email)
@@ -18,6 +30,7 @@ function searchRowEmail(email) {
 
   return -1;
 }
+
 
 
 /**
@@ -28,8 +41,7 @@ function searchRowEmail(email) {
  * @return {number}       The row index if found, if not returns -1
  */
 function searchEvent(event, tr) {
-  var ssData = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
-  var eventsRange = ssData.getRange(DATA_EVENT + ":" + DATA_TASKROUTINE[0]);
+  var eventsRange = SS_DATA.getRange(DATA_EVENT + ":" + DATA_TASKROUTINE[0]);
 
   var data = eventsRange.getValues();
   for (var i = 0; i < data.length; i++)
@@ -49,10 +61,11 @@ function getValueToApprove() {
     approves = SS_DATA.getRange(DATA_APPROVE_VAL).getValue();
     return appVal = (approves < 0) ? approves : approves / 100;
   } catch (e) {
-    UI.alert('Exception thrown when trying to retrieve value to approve from ' + SHEET_DATA + ' in cell ' + DATA_APPROVE_VAL + '\nThe value could be not written as a percentage value must be written. The value to approve will be 60% as default\n\nException: ' + e);
+    UI.alert('Exception thrown when trying to retrieve value to approve from !' + SHEET_DATA + ' in cell ' + DATA_APPROVE_VAL + '\nThe value could be not written as a percentage value must be written. The value to approve will be 60% as default\n\nException: ' + e);
     return 0.6;
   }
 }
+
 
 
 /**
@@ -60,7 +73,7 @@ function getValueToApprove() {
  * @return {number} The number of members registered
  */
 function getMembershipNumber() {
-  var data = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA).getDataRange().getValues();
+  var data = SS_DATA.getDataRange().getValues();
 
   for (var i = 0; i < data.length; i++)
     if (data[i][0] == '' && data[i][1] == '')
@@ -84,21 +97,18 @@ function getMembershipNumber() {
  * @param  {number} weeks       The number of weeks that the event will be repeating (for tasks this value should be null)
  */
 function setDataEvent(event, tr, members, from, to, description, location, date, days, weeks) {
-  var ui = SpreadsheetApp.getUi(); // gets user interface
-  var ssData = SpreadsheetApp.getActive().getSheetByName(SHEET_DATA);
+  var addedRows = getLastRow(SS_DATA.getRange(DATA_EVENT + ":" + DATA_EVENT[0])) - 1;
 
-  var addedRows = getLastRow(ssData.getRange(DATA_EVENT + ":" + DATA_EVENT[0])) - 1;
-
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL).setValue(event);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 1).setValue(tr);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 2 + 1).setValue(members);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 3 + 1).setValue(from);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 4 + 1).setValue(to);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 5 + 1).setValue(description);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 6 + 1).setValue(location);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 7 + 1).setValue(date);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 8 + 1).setValue(days);
-  ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 9 + 1).setValue(weeks);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL).setValue(event);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 1).setValue(tr);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 2 + 1).setValue(members);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 3 + 1).setValue(from);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 4 + 1).setValue(to);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 5 + 1).setValue(description);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 6 + 1).setValue(location);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 7 + 1).setValue(date);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 8 + 1).setValue(days);
+  SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 9 + 1).setValue(weeks);
 
   if (tr == 'T') {
     // Converting parameters into Date objects
@@ -111,7 +121,7 @@ function setDataEvent(event, tr, members, from, to, description, location, date,
     var endDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), e.getHours(), e.getMinutes(), e.getSeconds(), e.getMilliseconds());
 
     var cell = addToCalendar(event, startDate, endDate).getA1Notation();
-    ssData.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 2).setValue(cell);
+    SS_DATA.getRange(DATA_INITIAL_EVENT_ROW + addedRows, DATA_EVENT_COL + 2).setValue(cell);
   } else if (tr == 'R') {
     // creating all necessary events in SHEET_CALENDAR
     var arrDays = days.split(',');

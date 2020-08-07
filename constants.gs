@@ -1,5 +1,4 @@
 //Constants for programs
-//<editor-fold> Constants
 // sheets names
 const SHEET_DATA = '_Data';
 const SHEET_TASKS = 'Tasks';
@@ -17,6 +16,8 @@ const DATA_EVENT = 'H2';
 const DATA_TASKROUTINE = 'I2';
 /** @constant {String} - Represents the header of the column where a cell from SHEET_CALENDAR is storing an event */
 const DATA_CALENDAR_CELL = 'J2';
+/** @constant {String} - Represents the header of the column where the members of the event are stored */
+const DATA_MEMBERS_CELL = 'K2';
 const DATA_WEEKS = 'R2';
 const DATA_EVENT_COL = 8;
 const DATA_INITIAL_EVENT_ROW = 3;
@@ -25,6 +26,8 @@ const DATA_DEFAULT_APPROVE_VAL = 60;
 const TASKS_MEMBER_INCREMENT = 5;
 const TASKS_TITLES_COL = 1;
 const TASKS_VALUES_COL = 2;
+/** @constant {String} - Represents the column where most of the values for tasks & routines are stored */
+const TASKS_VALUES_COLUMN = 'B';
 const TASKS_TASK = 'B1';
 const TASKS_TASK_ROW = 1;
 const TASKS_ROUTINE = 'B2';
@@ -53,9 +56,11 @@ const TASKS_CHECKBOX_COL = 4;
 const TASKS_H_M_COLUMN = 'E';
 const TASKS_ACHIEVEMENT_COLUMN = 'F';
 const TASKS_TOTAL_COLUMN = 'G';
-const NUM_TASKS = 8;
 const TASKS_VALUES_TASKS_COL = 3;
 const TASKS_NON_FIX_VALUES = 'A13';
+
+const NUM_TASKS = 8;
+
 /** @constant {string} - Cell where user chooses an event from SHEET_DATA to delete it */
 const TASKS_EVENT_CHOSEN = 'D11';
 // SHEET_CALENDAR constants
@@ -64,7 +69,8 @@ const CALENDAR_FINAL_DATE = 'G25';
 // SHEET_HISTORY constants
 const HISTORY_MEMBER_COL = 1;
 const HISTORY_WEEKS_ROW = 1;
-
+// calendar options
+const SEND_INVITES = true;
 // coder info
 const EMAIL = 'eduardo.mendozamartinez@aiesec.net';
 

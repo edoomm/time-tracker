@@ -1,0 +1,17 @@
+This file contains:
+1. How code is segmented into different files.
+2. How file is named.
+-------------------------------------------------------------------------------
+1. Code is segmented into different files based on the involved sheet and the functionality (buttons) that file performs.
+
+2. File name format: [SheetName][Functionality].gs
+
+- SheetName are: data, calendar, tasks, history
+
+- Functionality:
+- Sheet: handling the data of cells in the sheet.
+  Ex: calendarSheet.gs contains functions that change, accessing the value/data of cells in calendar sheet.
+- Other functionality: handling the request of buttons. (Buttons are mentioned specifically in each files).
+  Ex: tasksWeeklyCut.gs contains functions that perform the function of button WeeklyCut in the Tasks sheet.
+
+TODO: specify buttons in each files

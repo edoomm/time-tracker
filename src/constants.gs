@@ -69,8 +69,6 @@ const CALENDAR_FINAL_DATE = 'G25';
 // SHEET_HISTORY constants
 const HISTORY_MEMBER_COL = 1;
 const HISTORY_WEEKS_ROW = 1;
-// calendar options
-const SEND_INVITES = true;
 // coder info
 const EMAIL = 'eduardo.mendozamartinez@aiesec.net';
 

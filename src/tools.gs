@@ -132,3 +132,23 @@ function isEmptyValue(value, message) {
 
   return false;
 }
+
+/**
+ * Deletes a substring from a string that it is CSV like
+ *
+ * @param  {string} original  The original string
+ * @param  {string} substring A substring to delete
+ * @param  {string} separator The separator of the original string
+ * @return {string}           The string without the substring
+ */
+function deleteSubstring(original, substring, separator) {
+  var resStr = original.replace(substring, "").replace(separator + separator, separator);
+
+  // three cases, which one has been covered above
+  if (resStr[0] == separator)
+    return resStr.slice(1);
+  else if (resStr[resStr.length - 1] == separator)
+    return resStr.slice(0, resStr.length - 1);
+
+  return resStr;
+}

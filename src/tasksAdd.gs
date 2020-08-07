@@ -13,7 +13,7 @@ function addRoutine() {
 
   // days not added notification
   if (!isEmptyValue(SS_TASKS.getRange(TASKS_DAYS_DROPDOWN).getValue(), null))
-    if (UI.alert('😲', 'Did you wanted to add days to the routine?\nYou didn\'t click the "Add" button next to the dropdown menu, the days you choose will be displayed in cell [' + TASKS_DAYS_CHOSEN + ']', UI.ButtonSet.OK_CANCEL) != UI.Button.OK)
+    if (UI.alert('😲', 'Did you want to add days to the routine?\nYou didn\'t click the "Add" button next to the dropdown menu, the days you choose will be displayed in cell [' + TASKS_DAYS_CHOSEN + ']', UI.ButtonSet.OK_CANCEL) != UI.Button.OK)
       return;
 
   var routine = SS_TASKS.getRange(TASKS_ROUTINE).getValue();

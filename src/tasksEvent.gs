@@ -36,23 +36,3 @@ function deleteEvent() {
   // resets in SHEET_TASKS
   SS_TASKS.getRange(TASKS_EVENT_CHOSEN).setValue('');
 }
-
-/**
- * Deletes a task from SHEET_DATA through its name and the type of event
- *
- * @param  {string} event The name of the task or routine to delete
- * @param  {string} tr 'T' for task, 'R' for routine
- */
-function deleteEvent(event, tr) {
-  var rowEvent = searchEvent(event, tr);
-  if (rowEvent == -1)
-    return;
-
-  // deleting in SHEET_CALENDAR
-  var scheduleRange = SS_CALENDAR.getRange(SS_DATA.getRange(rowEvent, getColumnNumber(DATA_CALENDAR_CELL[0])).getValue());
-  if (!scheduleRange.getValue().includes(';'))
-    scheduleRange.setValue('');
-
-  // deleting in SHEET_DATA
-  SS_DATA.getRange(rowEvent, getColumnNumber(DATA_EVENT[0]), 1, getColumnNumber(DATA_WEEKS[0])).deleteCells(SpreadsheetApp.Dimension.ROWS);
-}

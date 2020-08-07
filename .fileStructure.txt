@@ -14,10 +14,13 @@ This file contains:
 - Other functionality: handling the request of buttons. (Buttons are mentioned specifically in each files).
   Ex: tasksWeeklyCut.gs contains functions that perform the function of button WeeklyCut in the Tasks sheet.
 
+<<<<<<< HEAD
 - Exceptional files:
 + database.gs contains the functions that perform accessing, editing database.
 + tools.gs contains the functions perform general purpose like searching arrays, get col,...
 + constant.gs contains the value of all constants in the program.
 + configuration.gs contains the value of special attribute that users can customize the program.
 
+=======
+>>>>>>> "Segmented code into files. Check .fileStructure for the detail!"
 TODO: specify buttons in each files

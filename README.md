@@ -1,10 +1,9 @@
-# Laloca Tracker
-Imagine having control of the weekly tasks you assign to your team in a **Google Spreadsheet** while having track of them in **Google Calendar**, **an AIESEC dream**, isn't it? Well, big news for you, that's what **Laloca Tracker** does.
+# Time Tracker
+Imagine having control of the weekly tasks you assign to your team in a **Google Spreadsheet** while having track of them in **Google Calendar**, **an AIESEC dream**, isn't it? Well, big news for you, that's what this **Time Tracker** does.
 <br><br>
 So if you are a TL, VP, etc. you will just need to fill the information required to your tasks or routines (**you can also create routines!**), give a few clicks and *voilà*! You and the responsible members of the tasks can watch their assignments in their **Google Calendars**!
 
-## Motivation
-At **AIESEC in IPN, Mexico** we managed our weekly tasks with a time-tracker called **Laloba Tracker**, just as [C](https://en.wikipedia.org/wiki/C_(programming_language)) succeeded [B](https://en.wikipedia.org/wiki/B_(programming_language)), it happened the same with **Laloca** and **Laloba**. Plus, both are puns meaning something quite different (and yeah, it's also the author's (@edoomm) drag queen name, you'll get it when you understand what "Laloca" means)
+<!-- ## Motivation -->
 
 <!-- ## Build status -->
 
